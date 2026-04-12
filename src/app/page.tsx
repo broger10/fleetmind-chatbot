@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
 import AgentIndicator from '@/components/AgentIndicator';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface Attachment {
   name: string;
@@ -168,6 +169,7 @@ export default function Home() {
             <AgentIndicator agentName={currentAgentName} agentColor={currentAgentColor} />
           </div>
         </div>
+        <ThemeToggle />
       </header>
 
       {/* Messages */}
