@@ -5,13 +5,13 @@ interface AgentIndicatorProps {
 
 export default function AgentIndicator({ agentName, agentColor }: AgentIndicatorProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border w-fit transition-all duration-300">
+    <div className="flex items-center gap-2 transition-all duration-500">
       <span
-        className="w-2.5 h-2.5 rounded-full transition-colors duration-300"
+        className="w-2 h-2 rounded-full transition-colors duration-500"
         style={{ backgroundColor: agentColor }}
       />
       <span
-        className="text-sm font-medium transition-colors duration-300"
+        className="text-xs font-medium tracking-wide transition-colors duration-500"
         style={{ color: agentColor }}
       >
         {agentName}
