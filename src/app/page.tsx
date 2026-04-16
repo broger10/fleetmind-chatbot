@@ -5,6 +5,7 @@ import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
 import AgentIndicator from '@/components/AgentIndicator';
 import ThemeToggle from '@/components/ThemeToggle';
+import LoginPage from '@/components/LoginPage';
 
 interface Attachment {
   name: string;
@@ -21,6 +22,13 @@ interface Message {
   agentName?: string;
   agentColor?: string;
   attachments?: Attachment[];
+}
+
+interface Session {
+  token: string;
+  name: string;
+  email: string;
+  isDemo: boolean;
 }
 
 const WELCOME: Message = {
@@ -42,6 +50,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export default function Home() {
+  const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState('dispatch');
@@ -59,7 +68,17 @@ export default function Home() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  const handleLogout = () => {
+    setSession(null);
+    setMessages([WELCOME]);
+    setCurrentAgent('dispatch');
+    setCurrentAgentName('FleetMind Dispatch');
+    setCurrentAgentColor('#3B82F6');
+  };
+
   const sendMessage = async (content: string, files?: File[]) => {
+    if (!session) return;
+
     // Build attachments
     const attachments: Attachment[] = [];
     if (files) {
@@ -103,7 +122,11 @@ export default function Home() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, currentAgent }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          currentAgent,
+          sessionToken: session.token,
+        }),
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -153,9 +176,14 @@ export default function Home() {
     }
   };
 
+  // Show login page if not authenticated
+  if (!session) {
+    return <LoginPage onLogin={setSession} />;
+  }
+
   return (
     <div className="flex flex-col h-full h-[100dvh] bg-bg">
-      {/* Header — minimal */}
+      {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 md:px-6 bg-bg-chat border-b border-border-light safe-top shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-md bg-[#1d4ed8] flex items-center justify-center shadow-sm">
@@ -172,7 +200,31 @@ export default function Home() {
             <AgentIndicator agentName={currentAgentName} agentColor={currentAgentColor} />
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {/* Account badge */}
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface text-[11px]">
+            {session.isDemo && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1d4ed8]">
+                <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>
+              </svg>
+            )}
+            <span className="text-text-secondary font-medium truncate max-w-[100px]">
+              {session.isDemo ? 'Demo' : session.name}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="ml-0.5 text-text-muted hover:text-text transition-colors"
+              title="Esci"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m16 17 5-5-5-5"/>
+                <path d="M21 12H9"/>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              </svg>
+            </button>
+          </div>
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Messages */}

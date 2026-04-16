@@ -93,9 +93,10 @@ function buildCoreMessages(messages: IncomingMessage[]): any[] {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { messages, currentAgent } = body as {
+    const { messages, currentAgent, sessionToken } = body as {
       messages: IncomingMessage[];
       currentAgent: AgentType | null;
+      sessionToken?: string;
     };
 
     const lastMessage = messages[messages.length - 1];
@@ -138,10 +139,12 @@ export async function POST(req: Request) {
     // --- STEP 2: Load KB + live data ---
     const kbs = getKBs();
     let fleetData = '';
-    try {
-      fleetData = await fetchFleetDataContext();
-    } catch {
-      console.error('Fleet data fetch failed, continuing without live data');
+    if (sessionToken) {
+      try {
+        fleetData = await fetchFleetDataContext(sessionToken);
+      } catch {
+        console.error('Fleet data fetch failed, continuing without live data');
+      }
     }
 
     const systemMessage = `${AGENT_PROMPTS[selectedAgent]}

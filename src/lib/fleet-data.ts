@@ -1,40 +1,12 @@
 const FLEET_BASE_URL = process.env.FLEET_API_URL || 'https://fleetmind.co';
 const CACHE_TTL_MS = 60_000; // 1 minute
 
-let cachedData: { text: string; fetchedAt: number } | null = null;
-let cookieHeader: string | null = null;
+const dataCache = new Map<string, { text: string; fetchedAt: number }>();
 
-async function ensureAuth(): Promise<string> {
-  if (cookieHeader) return cookieHeader;
-
-  const res = await fetch(`${FLEET_BASE_URL}/api/auth/demo-login`, {
-    redirect: 'manual',
-  });
-
-  const setCookies = res.headers.getSetCookie?.() ?? [];
-  cookieHeader = setCookies.map(c => c.split(';')[0]).join('; ');
-  // Follow redirect manually to grab any extra cookies
-  if (res.status >= 300 && res.status < 400) {
-    const location = res.headers.get('location');
-    if (location) {
-      const followRes = await fetch(new URL(location, FLEET_BASE_URL).href, {
-        headers: { cookie: cookieHeader },
-        redirect: 'manual',
-      });
-      const moreCookies = followRes.headers.getSetCookie?.() ?? [];
-      if (moreCookies.length) {
-        cookieHeader += '; ' + moreCookies.map(c => c.split(';')[0]).join('; ');
-      }
-    }
-  }
-  return cookieHeader;
-}
-
-async function fetchJSON<T>(path: string): Promise<T | null> {
+async function fetchJSON<T>(path: string, sessionToken: string): Promise<T | null> {
   try {
-    const cookie = await ensureAuth();
     const res = await fetch(`${FLEET_BASE_URL}${path}`, {
-      headers: { cookie },
+      headers: { cookie: `__Secure-next-auth.session-token=${sessionToken}` },
     });
     if (!res.ok) return null;
     return await res.json() as T;
@@ -142,17 +114,18 @@ function formatTrips(trips: Trip[]): string {
   return text;
 }
 
-export async function fetchFleetDataContext(): Promise<string> {
-  // Return cached if fresh
-  if (cachedData && Date.now() - cachedData.fetchedAt < CACHE_TTL_MS) {
-    return cachedData.text;
+export async function fetchFleetDataContext(sessionToken: string): Promise<string> {
+  // Return cached if fresh (keyed by token)
+  const cached = dataCache.get(sessionToken);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return cached.text;
   }
 
   const [orders, drivers, vehicles, trips] = await Promise.all([
-    fetchJSON<Order[]>('/api/orders'),
-    fetchJSON<Driver[]>('/api/drivers'),
-    fetchJSON<Vehicle[]>('/api/vehicles'),
-    fetchJSON<Trip[]>('/api/trips'),
+    fetchJSON<Order[]>('/api/orders', sessionToken),
+    fetchJSON<Driver[]>('/api/drivers', sessionToken),
+    fetchJSON<Vehicle[]>('/api/vehicles', sessionToken),
+    fetchJSON<Trip[]>('/api/trips', sessionToken),
   ]);
 
   let text = '## DATI LIVE DALLA PIATTAFORMA FLEETMIND\n';
@@ -172,6 +145,6 @@ export async function fetchFleetDataContext(): Promise<string> {
 
   text += '> Usa questi dati per rispondere alle domande dell\'utente sulla situazione attuale della flotta.\n';
 
-  cachedData = { text, fetchedAt: Date.now() };
+  dataCache.set(sessionToken, { text, fetchedAt: Date.now() });
   return text;
 }
