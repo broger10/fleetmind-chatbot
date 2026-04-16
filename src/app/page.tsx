@@ -158,7 +158,7 @@ export default function Home() {
       {/* Header — minimal */}
       <header className="flex items-center justify-between px-4 py-3 md:px-6 bg-bg-chat border-b border-border-light safe-top shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 rounded-md bg-[#1d4ed8] flex items-center justify-center shadow-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
               <path d="M15 18H9"/>
