@@ -7,6 +7,7 @@ import { COMPLIANCE_SYSTEM_PROMPT } from '@/prompts/compliance';
 import { SUPPORT_SYSTEM_PROMPT } from '@/prompts/support';
 import type { AgentType, ManagerResponse } from '@/lib/types';
 import { MAX_HISTORY_LENGTH, MAX_MESSAGE_LENGTH, AGENT_NAMES, AGENT_COLORS } from '@/lib/types';
+import { fetchFleetDataContext } from '@/lib/fleet-data';
 
 const AGENT_PROMPTS: Record<AgentType, string> = {
   dispatch: DISPATCH_SYSTEM_PROMPT,
@@ -134,8 +135,15 @@ export async function POST(req: Request) {
       console.error('Manager fallback:', selectedAgent);
     }
 
-    // --- STEP 2: Load KB ---
+    // --- STEP 2: Load KB + live data ---
     const kbs = getKBs();
+    let fleetData = '';
+    try {
+      fleetData = await fetchFleetDataContext();
+    } catch {
+      console.error('Fleet data fetch failed, continuing without live data');
+    }
+
     const systemMessage = `${AGENT_PROMPTS[selectedAgent]}
 
 ---
@@ -144,7 +152,10 @@ ${kbs.shared}
 
 ---
 ## VERTICAL KNOWLEDGE BASE (${selectedAgent.toUpperCase()})
-${kbs[selectedAgent]}`;
+${kbs[selectedAgent]}
+
+---
+${fleetData}`;
 
     // --- STEP 3: Build multimodal messages ---
     const coreMessages = buildCoreMessages(truncatedMessages);
